@@ -1,0 +1,329 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Primary Colors */
+    --color-primary: #2563eb; /* blue-600 - Professional blue for trust and technical competence */
+    --color-primary-foreground: #ffffff; /* white - Maximum contrast for accessibility */
+    
+    /* Secondary Colors */
+    --color-secondary: #64748b; /* slate-500 - Sophisticated neutral contrast */
+    --color-secondary-foreground: #ffffff; /* white - Clear contrast on slate */
+    
+    /* Accent Colors */
+    --color-accent: #0ea5e9; /* sky-500 - Modern interactive elements */
+    --color-accent-foreground: #ffffff; /* white - High contrast on bright blue */
+    
+    /* Background Colors */
+    --color-background: #ffffff; /* white - Pure white for maximum contrast */
+    --color-foreground: #0f172a; /* slate-900 - Near-black for readability */
+    
+    /* Surface Colors */
+    --color-card: #f8fafc; /* slate-50 - Subtle off-white for elevation */
+    --color-card-foreground: #0f172a; /* slate-900 - Consistent text color */
+    --color-popover: #ffffff; /* white - Clean popover background */
+    --color-popover-foreground: #0f172a; /* slate-900 - Readable popover text */
+    
+    /* Muted Colors */
+    --color-muted: #f1f5f9; /* slate-100 - Subtle background variation */
+    --color-muted-foreground: #475569; /* slate-600 - Secondary text hierarchy */
+    
+    /* Border and Input */
+    --color-border: #e2e8f0; /* slate-200 - Minimal neutral borders */
+    --color-input: #e2e8f0; /* slate-200 - Consistent input borders */
+    --color-ring: #2563eb; /* blue-600 - Focus ring matching primary */
+    
+    /* Semantic Colors */
+    --color-success: #059669; /* emerald-600 - Professional positive states */
+    --color-success-foreground: #ffffff; /* white - Clear contrast on green */
+    
+    --color-warning: #d97706; /* amber-600 - Warm attention-drawing amber */
+    --color-warning-foreground: #ffffff; /* white - Readable on amber */
+    
+    --color-error: #dc2626; /* red-600 - Clear urgency communication */
+    --color-error-foreground: #ffffff; /* white - High contrast on red */
+    
+    --color-destructive: #dc2626; /* red-600 - Destructive action indicator */
+    --color-destructive-foreground: #ffffff; /* white - Clear destructive text */
+    
+    /* Radius */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Primary Colors */
+    --color-primary: #3b82f6; /* blue-500 - Brighter blue for dark mode */
+    --color-primary-foreground: #ffffff; /* white - Maintained contrast */
+    
+    /* Secondary Colors */
+    --color-secondary: #475569; /* slate-600 - Darker neutral for dark mode */
+    --color-secondary-foreground: #f1f5f9; /* slate-100 - Light text on dark */
+    
+    /* Accent Colors */
+    --color-accent: #0ea5e9; /* sky-500 - Consistent bright accent */
+    --color-accent-foreground: #ffffff; /* white - Clear contrast */
+    
+    /* Background Colors */
+    --color-background: #0f172a; /* slate-900 - Deep dark background */
+    --color-foreground: #f8fafc; /* slate-50 - Light text on dark */
+    
+    /* Surface Colors */
+    --color-card: #1e293b; /* slate-800 - Elevated dark surface */
+    --color-card-foreground: #f8fafc; /* slate-50 - Light text on card */
+    --color-popover: #1e293b; /* slate-800 - Dark popover surface */
+    --color-popover-foreground: #f8fafc; /* slate-50 - Light popover text */
+    
+    /* Muted Colors */
+    --color-muted: #334155; /* slate-700 - Subtle dark variation */
+    --color-muted-foreground: #cbd5e1; /* slate-300 - Muted text in dark */
+    
+    /* Border and Input */
+    --color-border: #334155; /* slate-700 - Subtle dark borders */
+    --color-input: #334155; /* slate-700 - Dark input borders */
+    --color-ring: #3b82f6; /* blue-500 - Bright focus ring */
+    
+    /* Semantic Colors */
+    --color-success: #10b981; /* emerald-500 - Brighter success in dark */
+    --color-success-foreground: #ffffff; /* white - Clear contrast */
+    
+    --color-warning: #f59e0b; /* amber-500 - Brighter warning in dark */
+    --color-warning-foreground: #ffffff; /* white - Clear contrast */
+    
+    --color-error: #ef4444; /* red-500 - Brighter error in dark */
+    --color-error-foreground: #ffffff; /* white - Clear contrast */
+    
+    --color-destructive: #ef4444; /* red-500 - Brighter destructive in dark */
+    --color-destructive-foreground: #ffffff; /* white - Clear contrast */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+  }
+  
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+  }
+}
+
+/* Navigation Component Styles */
+.primary-nav {
+  @apply fixed top-0 left-0 right-0 z-[100] bg-background border-b border-border;
+  height: 64px;
+}
+
+.primary-nav-container {
+  @apply h-full max-w-7xl mx-auto px-4 flex items-center justify-between;
+}
+
+.primary-nav-logo {
+  @apply flex items-center gap-3 no-underline;
+}
+
+.primary-nav-logo-icon {
+  @apply w-10 h-10 rounded-lg flex items-center justify-center;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+.primary-nav-logo-text {
+  @apply text-xl font-semibold text-foreground ;
+}
+
+.primary-nav-menu {
+  @apply hidden lg:flex items-center gap-1;
+}
+
+.primary-nav-link {
+  @apply px-4 py-2 rounded-md text-sm font-medium text-muted-foreground transition-all duration-150 ease-out no-underline;
+  @apply hover:text-foreground hover:bg-muted;
+}
+.primary-nav-link.active  {
+  @apply text-primary;
+}
+
+.primary-nav-mobile-toggle {
+  @apply lg:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors;
+}
+.primary-nav-mobile-menu  {
+  @apply fixed inset-0 z-[200] backdrop-blur-sm lg:hidden;
+  @apply flex flex-col;
+}
+
+.primary-nav-mobile-header {
+  @apply flex items-center justify-between p-4 border-b border-border;
+}
+
+.primary-nav-mobile-links {
+  @apply flex flex-col p-4 gap-2;
+}
+
+.primary-nav-mobile-link {
+  @apply px-4 py-3 rounded-md text-base font-medium text-muted-foreground transition-all duration-150 ease-out no-underline;
+  @apply hover:text-foreground hover:bg-muted;
+}
+.primary-nav-mobile-link.active  {
+  @apply text-primary;
+}
+
+/* Main Content Layout */
+.main-content {
+  @apply pt-16 min-h-screen;
+}
+
+/* Modal Overlay Styles */
+.modal-overlay {
+  @apply fixed inset-0 z-[1000] bg-black/50 backdrop-blur-sm;
+  @apply flex items-center justify-center p-4;
+}
+
+.modal-content {
+  @apply bg-card rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden;
+  @apply flex flex-col;
+}
+
+.modal-header {
+  @apply flex items-center justify-between p-6 border-b border-border;
+}
+
+.modal-title {
+  @apply text-2xl font-semibold text-foreground;
+}
+
+.modal-close {
+  @apply p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors;
+}
+
+.modal-body {
+  @apply p-6 overflow-y-auto flex-1;
+}
+
+/* Progress Indicator Styles */
+.progress-container {
+  @apply w-full bg-muted rounded-full overflow-hidden;
+  height: 8px;
+}
+
+.progress-bar {
+  @apply h-full bg-primary transition-all duration-300 ease-out;
+}
+
+.progress-bar.success {
+  @apply bg-success;
+}
+
+.progress-bar.warning {
+  @apply bg-warning;
+}
+
+.progress-bar.error {
+  @apply bg-error;
+}
+
+/* Filter Toolbar Styles */
+.filter-toolbar {
+  @apply sticky top-16 z-50 bg-background border-b border-border p-4;
+  @apply flex flex-wrap items-center gap-4;
+}
+
+.filter-toolbar-search {
+  @apply flex-1 min-w-[200px];
+}
+
+.filter-toolbar-actions {
+  @apply flex items-center gap-2;
+}
+
+/* Vulnerability Card Styles */
+.vulnerability-card {
+  @apply bg-card rounded-lg border border-border p-4;
+  @apply transition-all duration-150 ease-out;
+  @apply hover:shadow-md hover:scale-[1.02];
+}
+
+.vulnerability-card.severity-high {
+  @apply border-l-4 border-l-error;
+}
+
+.vulnerability-card.severity-medium {
+  @apply border-l-4 border-l-warning;
+}
+
+.vulnerability-card.severity-low {
+  @apply border-l-4 border-l-success;
+}
+
+/* Severity Badge Styles */
+.severity-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+.severity-badge.high  {
+  @apply text-error;
+}
+.severity-badge.medium  {
+  @apply text-warning;
+}
+.severity-badge.low  {
+  @apply text-success;
+}
+
+/* Skeleton Loading Styles */
+.skeleton {
+  @apply animate-pulse bg-muted rounded;
+}
+
+.skeleton-text {
+  @apply h-4 bg-muted rounded;
+}
+
+.skeleton-title {
+  @apply h-6 bg-muted rounded;
+}
+
+.skeleton-card {
+  @apply h-32 bg-muted rounded-lg;
+}
+
+/* Tooltip Styles */
+.tooltip {
+  @apply absolute z-[500] px-3 py-2 text-sm text-primary-foreground bg-foreground rounded-md shadow-lg;
+  @apply pointer-events-none opacity-0 transition-opacity duration-150;
+}
+
+.tooltip.visible {
+  @apply opacity-100;
+}
+
+/* Utility Classes */
+.text-gradient {
+  @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+}
+
+.shadow-elevation-1 {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-elevation-2 {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-elevation-3 {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
