@@ -99,7 +99,10 @@ npm run build
 ```
 
 ## 🙏 Acknowledgments
+<<<<<<< HEAD
 
+=======
+>>>>>>> cc2be1f1eaa972bd961f7d47de62769df6831a16
 - Powered by React and Vite
 - Styled with Tailwind CSS
 
