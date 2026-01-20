@@ -8,7 +8,7 @@ import VulnerabilityDashboard from './pages/vulnerability-dashboard';
 import UploadInterface from './pages/upload-interface';
 import ScanProgressTracking from './pages/scan-progress-tracking';
 import ScanHistory from './pages/scan-history';
-// import NavigationSidePanel from './pages/navigation-side-panel';
+
 
 const Routes = () => {
   return (

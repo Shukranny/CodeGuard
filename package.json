@@ -2,32 +2,7 @@
   "name": "codeguard-scanner",
   "version": "0.1.0",
   "private": true,
-  "rocketCritical": {
-    "dependencies": [
-      "@dhiwise/component-tagger",
-      "react",
-      "react-dom",
-      "@reduxjs/toolkit",
-      "redux",
-      "react-router-dom"
-    ],
-    "devDependencies": [
-      "@vitejs/plugin-react",
-      "vite",
-      "vite-tsconfig-paths",
-      "tailwindcss",
-      "autoprefixer",
-      "postcss"
-    ],
-    "scripts": [
-      "start",
-      "build",
-      "serve"
-    ],
-    "warning": "🚨 CRITICAL: DO NOT REMOVE OR MODIFY ABOVE DEPENDENCIES - Required for app functionality"
-  },
   "dependencies": {
-    "@dhiwise/component-tagger": "^1.0.10",
     "@radix-ui/react-slot": "^1.2.3",
     "@reduxjs/toolkit": "^2.6.1",
     "@tailwindcss/forms": "^0.5.7",
@@ -60,13 +35,15 @@
     "tailwindcss-elevation": "^2.0.0",
     "tailwindcss-fluid-type": "^2.0.7",
     "components": "0.1.0",
-    "pages": "0.0.16",
-    "next": "16.1.1"
+    "pages": "0.0.16"
+    
   },
   "scripts": {
+    "dev": "vite",
     "start": "vite",
     "build": "vite build --sourcemap",
     "serve": "vite preview"
+    
   },
   "eslintConfig": {
     "extends": [

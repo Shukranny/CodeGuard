@@ -40,12 +40,7 @@ const PrimaryNavigation = () => {
       icon: 'History',
       description: 'Review previous scans'
     },
-    {
-      label: 'Navigation',
-      path: '/navigation-side-panel',
-      icon: 'Sidebar',
-      description: 'Side panel navigation'
-    }
+    
   ];
 
   const isActivePath = (path) => {
