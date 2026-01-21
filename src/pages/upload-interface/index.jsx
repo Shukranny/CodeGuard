@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PrimaryNavigation from '../../components/ui/PrimaryNavigation';
+// import PrimaryNavigation from 'components/navigation/PrimaryNavigation';
+import Header from 'components/navigation/Header';
 import Icon from '../../components/AppIcon';
 import FileUploadZone from './components/FileUploadZone';
 import GitHubRepoInput from './components/GitHubRepoInput';
@@ -89,7 +90,8 @@ const UploadInterface = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <PrimaryNavigation />
+      {/* <PrimaryNavigation /> */}
+      <Header />
 
       <main className="main-content">
         <div className="max-w-7xl mx-auto px-4 py-8 sm:py-12">

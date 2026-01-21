@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PrimaryNavigation from '../../components/ui/PrimaryNavigation';
+// import PrimaryNavigation from 'components/navigation/PrimaryNavigation';
+import Header from 'components/navigation/Header';
 import ProgressIndicator from '../../components/ui/ProgressIndicator';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
@@ -168,7 +169,8 @@ const ScanProgressTracking = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <PrimaryNavigation />
+      {/* <PrimaryNavigation /> */}
+      <Header />
       <main className="main-content">
         <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
           <div className="flex items-center justify-between flex-wrap gap-4">

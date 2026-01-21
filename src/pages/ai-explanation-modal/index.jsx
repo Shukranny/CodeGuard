@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import PrimaryNavigation from '../../components/ui/PrimaryNavigation';
+// import PrimaryNavigation from 'components/navigation/PrimaryNavigation';
+import Header from 'components/navigation/Header';
 import ModalOverlay from '../../components/ui/ModalOverlay';
 import TabNavigation from './components/TabNavigation';
 import ProblemAnalysisTab from './components/ProblemAnalysisTab';
@@ -358,7 +359,8 @@ const AIExplanationModal = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <PrimaryNavigation />
+      {/* <PrimaryNavigation /> */}
+      <Header />
       <div className="main-content">
         <ModalOverlay
           isOpen={true}

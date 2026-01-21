@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PrimaryNavigation from '../../components/ui/PrimaryNavigation';
+// import PrimaryNavigation from 'components/navigation/PrimaryNavigation';
+import Header from 'components/navigation/Header';
 import FilterToolbar from '../../components/ui/FilterToolbar';
 import Select from '../../components/ui/Select';
 import Button from '../../components/ui/Button';
@@ -298,7 +299,8 @@ const ScanHistory = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <PrimaryNavigation />
+      {/* <PrimaryNavigation /> */}
+      <Header />
       <main className="main-content">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center justify-between mb-8">
