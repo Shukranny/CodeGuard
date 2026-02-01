@@ -36,7 +36,6 @@ const Header = () => {
     <>
       <header className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border z-[1000] shadow-glow-md">
         <div className="h-full px-6 flex items-center justify-between">
-          <div className="flex items-center gap-8">
             <Link to="/dashboard" className="flex items-center gap-3 group">
               <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center transition-smooth group-hover:bg-primary/20">
                 <Icon name="Shield" size={24} color="var(--color-primary)" />
@@ -87,28 +86,28 @@ const Header = () => {
                   ))}
                 </div>
               </div>
-            </nav>
-          </div>
+              <div className="flex items-center gap-4">
+                {/* {activeScan && (
+                  <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-primary/10 rounded-lg border border-primary/20">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                    <span className="text-sm font-medium text-primary">
+                      Scan in Progress: {activeScan?.progress}%
+                    </span>
+                  </div>
+                )} */}
 
-          <div className="flex items-center gap-4">
-            {activeScan && (
-              <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-primary/10 rounded-lg border border-primary/20">
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                <span className="text-sm font-medium text-primary">
-                  Scan in Progress: {activeScan?.progress}%
-                </span>
               </div>
-            )}
+            </nav>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden"
+                onClick={toggleMobileMenu}
+              >
+                <Icon name={mobileMenuOpen ? 'X' : 'Menu'} size={24} />
+              </Button>
+          
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={toggleMobileMenu}
-            >
-              <Icon name={mobileMenuOpen ? 'X' : 'Menu'} size={24} />
-            </Button>
-          </div>
         </div>
       </header>
       {mobileMenuOpen && (
