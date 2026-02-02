@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
+import { useScanProgress } from '../../../context/ScanProgressContext';
 
 const UploadSection = ({ onFileSelect, onRepositorySubmit, uploadProgress }) => {
+  const { initiateScan } = useScanProgress();
   const [uploadMethod, setUploadMethod] = useState('file');
   const [isDragging, setIsDragging] = useState(false);
   const [repoUrl, setRepoUrl] = useState('');
@@ -32,6 +34,15 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, uploadProgress }) => 
     if (file && file?.name?.endsWith('.zip')) {
       setSelectedFile(file);
       onFileSelect(file);
+      // Initialize scan progress with file upload data
+      initiateScan({
+        projectData: {
+          type: 'file',
+          filename: file?.name,
+          size: file?.size,
+          uploadDate: new Date().toISOString()
+        }
+      });
     } else {
       alert('Please select a valid ZIP file');
     }
@@ -49,7 +60,16 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, uploadProgress }) => 
       alert('Please enter a valid repository URL');
       return;
     }
-    onRepositorySubmit({ url: repoUrl, token: githubToken });
+    const repoData = { url: repoUrl, token: githubToken };
+    onRepositorySubmit(repoData);
+    // Initialize scan progress with repository data
+    initiateScan({
+      projectData: {
+        type: 'github',
+        url: repoUrl,
+        uploadDate: new Date().toISOString()
+      }
+    });
   };
 
   return (

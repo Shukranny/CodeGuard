@@ -7,75 +7,80 @@ import PreliminaryFindings from './components/PreliminaryFindings';
 import ScanMetadata from './components/ScanMetadata';
 import ScanControls from './components/ScanControls';
 import ScanLogs from './components/ScanLogs';
+import { useScanProgress } from '../../context/ScanProgressContext';
+import { saveScanProgress } from '../../utils/persistenceUtils';
 
 const ScanProgress = () => {
   const navigate = useNavigate();
-  const [currentStage, setCurrentStage] = useState(0);
-  const [overallProgress, setOverallProgress] = useState(0);
+  const { scanState, updateScanProgress, updateStageProgress, completeScan } = useScanProgress();
+  const [currentStage, setCurrentStage] = useState(scanState?.currentStage || 0);
+  const [overallProgress, setOverallProgress] = useState(scanState?.overallProgress || 0);
   const [scanComplete, setScanComplete] = useState(false);
 
-  const [stages, setStages] = useState([
-    {
-      id: 'init',
-      name: 'Initialization',
-      description: 'Setting up scan environment and validating project structure',
-      icon: 'Settings',
-      progress: 100,
-      filesProcessed: 0,
-      rulesExecuted: 0,
-      duration: '12s'
-    },
-    {
-      id: 'analysis',
-      name: 'File Analysis',
-      description: 'Analyzing project files and detecting programming languages',
-      icon: 'FileSearch',
-      progress: 75,
-      filesProcessed: 342,
-      rulesExecuted: 1250,
-      duration: null
-    },
-    {
-      id: 'dependencies',
-      name: 'Dependency Resolution',
-      description: 'Scanning package manifests and checking for known vulnerabilities',
-      icon: 'Package',
-      progress: 0,
-      filesProcessed: 0,
-      rulesExecuted: 0,
-      duration: null
-    },
-    {
-      id: 'static',
-      name: 'Static Code Analysis',
-      description: 'Running Semgrep rules to detect security vulnerabilities',
-      icon: 'Code',
-      progress: 0,
-      filesProcessed: 0,
-      rulesExecuted: 0,
-      duration: null
-    },
-    {
-      id: 'secrets',
-      name: 'Secret Detection',
-      description: 'Scanning for exposed credentials and sensitive information',
-      icon: 'Key',
-      progress: 0,
-      filesProcessed: 0,
-      rulesExecuted: 0,
-      duration: null
-    },
-    {
-      id: 'report',
-      name: 'Report Generation',
-      description: 'Compiling findings and generating comprehensive security report',
-      icon: 'FileText',
-      progress: 0,
-      filesProcessed: 0,
-      rulesExecuted: 0,
-      duration: null
-    }
-  ]);
+  const [stages, setStages] = useState(() => {
+    return scanState?.stages || [
+      {
+        id: 'init',
+        name: 'Initialization',
+        description: 'Setting up scan environment and validating project structure',
+        icon: 'Settings',
+        progress: 100,
+        filesProcessed: 0,
+        rulesExecuted: 0,
+        duration: '12s'
+      },
+      {
+        id: 'analysis',
+        name: 'File Analysis',
+        description: 'Analyzing project files and detecting programming languages',
+        icon: 'FileSearch',
+        progress: 75,
+        filesProcessed: 342,
+        rulesExecuted: 1250,
+        duration: null
+      },
+      {
+        id: 'dependencies',
+        name: 'Dependency Resolution',
+        description: 'Scanning package manifests and checking for known vulnerabilities',
+        icon: 'Package',
+        progress: 0,
+        filesProcessed: 0,
+        rulesExecuted: 0,
+        duration: null
+      },
+      {
+        id: 'static',
+        name: 'Static Code Analysis',
+        description: 'Running Semgrep rules to detect security vulnerabilities',
+        icon: 'Code',
+        progress: 0,
+        filesProcessed: 0,
+        rulesExecuted: 0,
+        duration: null
+      },
+      {
+        id: 'secrets',
+        name: 'Secret Detection',
+        description: 'Scanning for exposed credentials and sensitive information',
+        icon: 'Key',
+        progress: 0,
+        filesProcessed: 0,
+        rulesExecuted: 0,
+        duration: null
+      },
+      {
+        id: 'report',
+        name: 'Report Generation',
+        description: 'Compiling findings and generating comprehensive security report',
+        icon: 'FileText',
+        progress: 0,
+        filesProcessed: 0,
+        rulesExecuted: 0,
+        duration: null
+      }
+    ];
+  });
 
   const [findings, setFindings] = useState({
     summary: [
@@ -241,6 +246,13 @@ const ScanProgress = () => {
         const totalProgress = newStages?.reduce((sum, stage) => sum + stage?.progress, 0) / newStages?.length;
         setOverallProgress(totalProgress);
 
+        // Persist progress state
+        updateScanProgress({
+          stages: newStages,
+          currentStage,
+          overallProgress: totalProgress,
+        });
+
         return newStages;
       });
 
@@ -271,15 +283,16 @@ const ScanProgress = () => {
     }, 1500);
 
     return () => clearInterval(interval);
-  }, [currentStage, logs?.length]);
+  }, [currentStage, logs?.length, updateScanProgress]);
 
   useEffect(() => {
     if (scanComplete) {
+      completeScan();
       setTimeout(() => {
         navigate('/scan-results');
       }, 2000);
     }
-  }, [scanComplete, navigate]);
+  }, [scanComplete, navigate, completeScan]);
 
   const handleCancel = () => {
     console.log('Scan cancelled');

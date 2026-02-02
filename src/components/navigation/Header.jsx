@@ -100,6 +100,14 @@ const Header = () => {
               </div>
             )}
 
+            <Link
+              to="/profile"
+              className="hidden md:flex items-center justify-center p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-smooth"
+              title="Profile Settings"
+            >
+              <Icon name="Settings" size={20} />
+            </Link>
+
             <Button
               variant="ghost"
               size="icon"
@@ -131,6 +139,17 @@ const Header = () => {
                 <span>{item?.label}</span>
               </Link>
             ))}
+
+            <div className="mt-4 pt-4 border-t border-border">
+              <Link
+                to="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-foreground hover:bg-muted/50 transition-smooth"
+              >
+                <Icon name="Settings" size={20} />
+                <span>Profile Settings</span>
+              </Link>
+            </div>
 
             {activeScan && (
               <div className="mt-4 p-4 bg-primary/10 rounded-lg border border-primary/20">

@@ -9,6 +9,7 @@ import Dashboard from './pages/dashboard';
 import FileTreeExplorer from './pages/file-tree-explorer';
 import ScanProgress from './pages/scan-progress';
 import NewScanSetup from './pages/new-scan-setup';
+import Profile from './pages/profile';
 
 const Routes = () => {
   return (
@@ -24,6 +25,7 @@ const Routes = () => {
         <Route path="/file-tree-explorer" element={<FileTreeExplorer />} />
         <Route path="/scan-progress" element={<ScanProgress />} />
         <Route path="/new-scan-setup" element={<NewScanSetup />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="*" element={<NotFound />} />
       </RouterRoutes>
       </ErrorBoundary>

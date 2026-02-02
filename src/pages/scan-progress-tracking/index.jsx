@@ -9,61 +9,65 @@ import ScannerStatusCard from './components/ScannerStatusCard';
 import ProjectDetailsCard from './components/ProjectDetailsCard';
 import AdvancedDetailsPanel from './components/AdvancedDetailsPanel';
 import CancelScanModal from './components/CancelScanModal';
+import { useScanProgress } from '../../context/ScanProgressContext';
 
 const ScanProgressTracking = () => {
   const navigate = useNavigate();
-  const [overallProgress, setOverallProgress] = useState(0);
+  const { scanState, updateScanProgress, updateScannerStatus, completeScan } = useScanProgress();
+  const [overallProgress, setOverallProgress] = useState(scanState?.overallProgress || 0);
   const [estimatedTime, setEstimatedTime] = useState(180);
   const [currentOperation, setCurrentOperation] = useState('Initializing security scanners...');
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
   const [scanStartTime] = useState(new Date('2025-12-10T16:45:00'));
 
-  const [scanners, setScanners] = useState([
-    {
-      id: 'semgrep',
-      name: 'Semgrep',
-      icon: 'Shield',
-      description: 'Static analysis for security vulnerabilities',
-      status: 'running',
-      progress: 45,
-      currentFile: 'src/components/AuthHandler.jsx',
-      logs: [
-        'Analyzing authentication patterns...',
-        'Checking for SQL injection vulnerabilities...',
-        'Scanning for XSS patterns...'
-      ],
-      error: null
-    },
-    {
-      id: 'gitleaks',
-      name: 'GitLeaks',
-      icon: 'Key',
-      description: 'Secret and credential detection',
-      status: 'running',
-      progress: 67,
-      currentFile: 'config/database.js',
-      logs: [
-        'Scanning for API keys...',
-        'Checking environment files...',
-        'Analyzing configuration files...'
-      ],
-      error: null
-    },
-    {
-      id: 'osvdev',
-      name: 'OSV.dev',
-      icon: 'Package',
-      description: 'Open source vulnerability database',
-      status: 'pending',
-      progress: 0,
-      currentFile: null,
-      logs: [
-        'Waiting for dependency analysis...'
-      ],
-      error: null
-    }
-  ]);
+  const [scanners, setScanners] = useState(() => {
+    return scanState?.scanners || [
+      {
+        id: 'semgrep',
+        name: 'Semgrep',
+        icon: 'Shield',
+        description: 'Static analysis for security vulnerabilities',
+        status: 'running',
+        progress: 45,
+        currentFile: 'src/components/AuthHandler.jsx',
+        logs: [
+          'Analyzing authentication patterns...',
+          'Checking for SQL injection vulnerabilities...',
+          'Scanning for XSS patterns...'
+        ],
+        error: null
+      },
+      {
+        id: 'gitleaks',
+        name: 'GitLeaks',
+        icon: 'Key',
+        description: 'Secret and credential detection',
+        status: 'running',
+        progress: 67,
+        currentFile: 'config/database.js',
+        logs: [
+          'Scanning for API keys...',
+          'Checking environment files...',
+          'Analyzing configuration files...'
+        ],
+        error: null
+      },
+      {
+        id: 'osvdev',
+        name: 'OSV.dev',
+        icon: 'Package',
+        description: 'Open source vulnerability database',
+        status: 'pending',
+        progress: 0,
+        currentFile: null,
+        logs: [
+          'Waiting for dependency analysis...'
+        ],
+        error: null
+      }
+    ];
+  });
 
   const projectDetails = {
     name: 'E-Commerce Platform',
@@ -99,6 +103,7 @@ const ScanProgressTracking = () => {
       setOverallProgress((prev) => {
         if (prev >= 100) {
           clearInterval(progressInterval);
+          completeScan();
           setTimeout(() => {
             navigate('/vulnerability-dashboard');
           }, 1000);
@@ -112,23 +117,29 @@ const ScanProgressTracking = () => {
       setScanners((prevScanners) =>
         prevScanners?.map((scanner) => {
           if (scanner?.status === 'running' && scanner?.progress < 100) {
-            return {
+            const updatedScanner = {
               ...scanner,
               progress: Math.min(100, scanner?.progress + Math.random() * 3)
             };
+            updateScannerStatus(scanner?.id, updatedScanner);
+            return updatedScanner;
           }
           if (scanner?.status === 'pending' && overallProgress > 40) {
-            return {
+            const updatedScanner = {
               ...scanner,
               status: 'running',
               progress: 5
             };
+            updateScannerStatus(scanner?.id, updatedScanner);
+            return updatedScanner;
           }
           if (scanner?.progress >= 100 && scanner?.status === 'running') {
-            return {
+            const updatedScanner = {
               ...scanner,
               status: 'completed'
             };
+            updateScannerStatus(scanner?.id, updatedScanner);
+            return updatedScanner;
           }
           return scanner;
         })
@@ -145,10 +156,16 @@ const ScanProgressTracking = () => {
         'Analyzing API security patterns...'
       ];
       setCurrentOperation(operations?.[Math.floor(Math.random() * operations?.length)]);
+
+      // Persist progress state
+      updateScanProgress({
+        overallProgress: overallProgress + 1,
+        currentOperation,
+      });
     }, 1000);
 
     return () => clearInterval(progressInterval);
-  }, [navigate, overallProgress]);
+  }, [navigate, overallProgress, updateScanProgress, updateScannerStatus, completeScan]);
 
   const handleCancelScan = () => {
     setIsCancelModalOpen(true);

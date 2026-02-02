@@ -84,6 +84,7 @@ module.exports = {
           'elevation-1': '0 1px 3px rgba(0, 0, 0, 0.1)',
           'elevation-2': '0 4px 6px rgba(0, 0, 0, 0.1)',
           'elevation-3': '0 10px 25px rgba(0, 0, 0, 0.15)',
+          'glow-md': '0 4px 20px rgba(37, 99, 235, 0.2)',
         },
         animation: {
           'fade-in': 'fadeIn 150ms ease-out',

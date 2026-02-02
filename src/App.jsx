@@ -1,10 +1,14 @@
 import React from "react";
 import Routes from "./Routes";
+import { ScanProgressProvider } from "./context/ScanProgressContext";
 
 function App() {
   return (
-    <Routes />
+    <ScanProgressProvider>
+      <Routes />
+    </ScanProgressProvider>
   );
 }
 
 export default App;
+
