@@ -10,9 +10,9 @@ const Header = () => {
 
   const navigationItems = [
     { path: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
-    { path: '/upload-interface', label: 'New Scan', icon: 'Plus' },
-    { path: '/scan-progress-tracking', label: 'Progress', icon: 'Activity' },
-    { path: '/vulnerability-dashboard', label: 'Results', icon: 'FileSearch' }
+    { path: '/new-scan-setup', label: 'New Scan', icon: 'Plus' },
+    { path: '/scan-progress', label: 'Progress', icon: 'Activity' },
+    { path: '/scan-results', label: 'Results', icon: 'FileSearch' }
   ];
 
   const moreItems = [
@@ -44,6 +44,7 @@ const Header = () => {
                 SecureCodeAnalyzer
               </span>
             </Link>
+          <div className="flex items-center gap-8">
 
             <nav className="hidden md:flex items-center gap-1">
               {navigationItems?.map((item) => (
@@ -86,28 +87,28 @@ const Header = () => {
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                {/* {activeScan && (
-                  <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-primary/10 rounded-lg border border-primary/20">
-                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                    <span className="text-sm font-medium text-primary">
-                      Scan in Progress: {activeScan?.progress}%
-                    </span>
-                  </div>
-                )} */}
-
-              </div>
             </nav>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden"
-                onClick={toggleMobileMenu}
-              >
-                <Icon name={mobileMenuOpen ? 'X' : 'Menu'} size={24} />
-              </Button>
-          
+          </div>
 
+          <div className="flex items-center gap-4">
+            {activeScan && (
+              <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-primary/10 rounded-lg border border-primary/20">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                <span className="text-sm font-medium text-primary">
+                  Scan in Progress: {activeScan?.progress}%
+                </span>
+              </div>
+            )}
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={toggleMobileMenu}
+            >
+              <Icon name={mobileMenuOpen ? 'X' : 'Menu'} size={24} />
+            </Button>
+          </div>
         </div>
       </header>
       {mobileMenuOpen && (

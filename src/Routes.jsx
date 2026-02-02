@@ -4,11 +4,11 @@ import ScrollToTop from "components/ScrollToTop";
 import ErrorBoundary from "components/ErrorBoundary";
 import NotFound from "pages/NotFound";
 import AIExplanationModal from './pages/ai-explanation-modal';
-import VulnerabilityDashboard from './pages/vulnerability-dashboard';
-import UploadInterface from './pages/upload-interface';
-import ScanProgressTracking from './pages/scan-progress-tracking';
-import ScanHistory from './pages/scan-history';
-
+import ScanResults from './pages/scan-results';
+import Dashboard from './pages/dashboard';
+import FileTreeExplorer from './pages/file-tree-explorer';
+import ScanProgress from './pages/scan-progress';
+import NewScanSetup from './pages/new-scan-setup';
 
 const Routes = () => {
   return (
@@ -17,13 +17,13 @@ const Routes = () => {
       <ScrollToTop />
       <RouterRoutes>
         {/* Define your route here */}
-        <Route path="/" element={<UploadInterface />} />
+        <Route path="/" element={<Dashboard />} />
         <Route path="/ai-explanation-modal" element={<AIExplanationModal />} />
-        <Route path="/vulnerability-dashboard" element={<VulnerabilityDashboard />} />
-        <Route path="/upload-interface" element={<UploadInterface />} />
-        <Route path="/scan-progress-tracking" element={<ScanProgressTracking />} />
-        <Route path="/scan-history" element={<ScanHistory />} />
-        {/* <Route path="/navigation-side-panel" element={<NavigationSidePanel />} /> */}
+        <Route path="/scan-results" element={<ScanResults />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/file-tree-explorer" element={<FileTreeExplorer />} />
+        <Route path="/scan-progress" element={<ScanProgress />} />
+        <Route path="/new-scan-setup" element={<NewScanSetup />} />
         <Route path="*" element={<NotFound />} />
       </RouterRoutes>
       </ErrorBoundary>
