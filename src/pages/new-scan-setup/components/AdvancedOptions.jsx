@@ -1,146 +1,151 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Icon from '../../../components/AppIcon';
-import Input from '../../../components/ui/Input';
-import { Checkbox } from '../../../components/ui/Checkbox';
+import Button from '../../../components/ui/Button';
+import { useScanProgress } from '../../../context/ScanProgressContext';
 
-const AdvancedOptions = ({ options, onOptionsChange }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+const UploadSection = ({ uploadProgress }) => {
+  const { initiateScan } = useScanProgress();
+  const [uploadMethod, setUploadMethod] = useState('file');
+  const [isDragging, setIsDragging] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [backendMessage, setBackendMessage] = useState('');
+  const [projectId, setProjectId] = useState(null);
+  const fileInputRef = useRef(null);
 
-  const owaspCategories = [
-    { id: 'a01', label: 'A01:2021 - Broken Access Control' },
-    { id: 'a02', label: 'A02:2021 - Cryptographic Failures' },
-    { id: 'a03', label: 'A03:2021 - Injection' },
-    { id: 'a04', label: 'A04:2021 - Insecure Design' },
-    { id: 'a05', label: 'A05:2021 - Security Misconfiguration' },
-    { id: 'a06', label: 'A06:2021 - Vulnerable Components' },
-    { id: 'a07', label: 'A07:2021 - Authentication Failures' },
-    { id: 'a08', label: 'A08:2021 - Software and Data Integrity' },
-    { id: 'a09', label: 'A09:2021 - Security Logging Failures' },
-    { id: 'a10', label: 'A10:2021 - Server-Side Request Forgery' }
-  ];
+  // ✅ ACTUAL upload to backend
+  const handleFileSubmit = async (file) => {
+    const formData = new FormData();
+    formData.append('zip_file', file);
+    formData.append('name', file.name);
 
-  const handlePathExclusionChange = (value) => {
-    onOptionsChange({ ...options, pathExclusions: value });
+    const res = await fetch('http://127.0.0.1:8000/api/projects/zip-upload/', {
+      method: 'POST',
+      headers: {
+        Authorization: `Token ${localStorage.getItem('token')}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const error = await res.text();
+      console.error('Backend error:', error);
+      throw new Error('Upload failed');
+    }
+
+    return await res.json();
   };
 
-  const handleTimeoutChange = (value) => {
-    onOptionsChange({ ...options, scanTimeout: parseInt(value) || 30 });
+  // ✅ File selected → upload triggered
+  const handleFileSelection = async (file) => {
+    if (!file || !file.name.endsWith('.zip')) {
+      alert('Please select a valid ZIP file');
+      return;
+    }
+
+    setSelectedFile(file);
+    setUploadSuccess(false);
+
+    try {
+      const response = await handleFileSubmit(file);
+
+      setUploadSuccess(true);
+      setBackendMessage(response.message);
+      setProjectId(response.project_id);
+
+      initiateScan({
+        projectData: {
+          type: 'file',
+          projectId: response.project_id,
+          filename: file.name,
+          size: file.size,
+          uploadDate: new Date().toISOString(),
+        },
+      });
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert(err.message);
+    }
   };
 
-  const handleOwaspToggle = (categoryId) => {
-    const current = options?.owaspCategories || [];
-    const updated = current?.includes(categoryId)
-      ? current?.filter(id => id !== categoryId)
-      : [...current, categoryId];
-    onOptionsChange({ ...options, owaspCategories: updated });
+  const handleFileInputChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) handleFileSelection(file);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => setIsDragging(false);
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileSelection(file);
   };
 
   return (
-    <div className="space-y-4">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 bg-card border border-border rounded-lg hover:border-primary/50 transition-smooth"
-      >
-        <div className="flex items-center gap-3">
-          <Icon name="Settings" size={20} color="var(--color-primary)" />
-          <span className="text-base font-heading font-semibold text-foreground">
-            Advanced Options
-          </span>
-        </div>
-        <Icon
-          name={isExpanded ? 'ChevronUp' : 'ChevronDown'}
-          size={20}
-          color="var(--color-muted-foreground)"
-        />
-      </button>
-      {isExpanded && (
-        <div className="space-y-6 p-4 md:p-6 bg-card border border-border rounded-lg">
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-                Path Exclusion Patterns
-                <button className="group relative">
-                  <Icon name="Info" size={14} color="var(--color-muted-foreground)" />
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 bg-popover border border-border rounded-lg text-xs text-foreground opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-smooth">
-                    Exclude files or directories from scanning using glob patterns (e.g., **/node_modules/**, **/*.test.js)
-                  </div>
-                </button>
-              </label>
-              <Input
-                type="text"
-                placeholder="**/node_modules/**, **/test/**, **/*.min.js"
-                value={options?.pathExclusions || ''}
-                onChange={(e) => handlePathExclusionChange(e?.target?.value)}
-                description="Comma-separated glob patterns"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-                Scan Timeout (minutes)
-                <button className="group relative">
-                  <Icon name="Info" size={14} color="var(--color-muted-foreground)" />
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 bg-popover border border-border rounded-lg text-xs text-foreground opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-smooth">
-                    Maximum time allowed for the scan to complete. Recommended: 30-60 minutes for large projects
-                  </div>
-                </button>
-              </label>
-              <Input
-                type="number"
-                min="5"
-                max="120"
-                placeholder="30"
-                value={options?.scanTimeout || 30}
-                onChange={(e) => handleTimeoutChange(e?.target?.value)}
-                description="Range: 5-120 minutes"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground">
-                OWASP Top 10 Categories
-              </label>
-              <button
-                onClick={() => {
-                  const allSelected = owaspCategories?.length === (options?.owaspCategories?.length || 0);
-                  onOptionsChange({
-                    ...options,
-                    owaspCategories: allSelected ? [] : owaspCategories?.map(c => c?.id)
-                  });
-                }}
-                className="text-xs text-primary hover:text-primary/80 transition-smooth"
-              >
-                {owaspCategories?.length === (options?.owaspCategories?.length || 0) ? 'Deselect All' : 'Select All'}
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2 max-h-64 overflow-elegant">
-              {owaspCategories?.map((category) => (
-                <Checkbox
-                  key={category?.id}
-                  label={category?.label}
-                  checked={options?.owaspCategories?.includes(category?.id) || false}
-                  onChange={() => handleOwaspToggle(category?.id)}
-                  size="sm"
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-border">
-            <Checkbox
-              label="Enable verbose logging"
-              description="Include detailed scan logs in the report"
-              checked={options?.verboseLogging || false}
-              onChange={(e) => onOptionsChange({ ...options, verboseLogging: e?.target?.checked })}
+    <div className="space-y-6">
+      {uploadMethod === 'file' && (
+        <div className="space-y-4">
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current.click()}
+            className={`border-2 border-dashed rounded-lg p-10 text-center cursor-pointer ${
+              isDragging ? 'border-primary bg-primary/5' : 'border-border'
+            }`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".zip"
+              className="hidden"
+              onChange={handleFileInputChange}
             />
+
+            <Icon name="Upload" size={32} />
+            <p className="mt-2">
+              {selectedFile ? selectedFile.name : 'Drop ZIP file or click to upload'}
+            </p>
           </div>
+
+          {selectedFile && (
+            <div className="border rounded-lg p-4">
+              <p className="font-medium">
+                {uploadSuccess ? '✅ Upload Successful' : 'File Selected'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+              </p>
+
+              {uploadSuccess && (
+                <p className="text-success text-sm mt-1">
+                  {backendMessage} — Project ID: {projectId}
+                </p>
+              )}
+            </div>
+          )}
+
+          {uploadProgress > 0 && uploadProgress < 100 && (
+            <div>
+              <p>Uploading… {uploadProgress}%</p>
+              <div className="h-2 bg-muted rounded">
+                <div
+                  className="h-full bg-primary"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 };
 
-export default AdvancedOptions;
+export default UploadSection;
