@@ -1,11 +1,12 @@
 from rest_framework import serializers
 from .models import Project
 
-class ZipUploadSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Project
-        fields = ['id', 'name', 'zip_file', 'created_at']
-        read_only_fields = ['id', 'created_at']
+class ZipUploadSerializer(serializers.Serializer):
+    """
+    Used ONLY for uploading ZIP files.
+    Accepts multipart/form-data with a `file` field.
+    """
+    file = serializers.FileField()
 
     def validate_zip_file(self, value):
         if not value.name.endswith('.zip'):
