@@ -2,8 +2,12 @@ import React, { useState, useRef } from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import { useScanProgress } from '../../../context/ScanProgressContext';
+import axios from 'axios';
 
-const UploadSection = ({ onFileSelect, onRepositorySubmit, uploadProgress }) => {
+
+const API_BASE_URL = 'http://127.0.0.1:8000/api/projects';
+
+const UploadSection = ({ onFileSelect, onRepositorySubmit, onValidationComplete, uploadProgress }) => {
   const { initiateScan } = useScanProgress();
   const [uploadMethod, setUploadMethod] = useState('file');
   const [isDragging, setIsDragging] = useState(false);
@@ -11,6 +15,9 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, uploadProgress }) => 
   const [githubToken, setGithubToken] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef(null);
+  const [uploadProgressState, setUploadProgressState] = useState(0);
+  
+
 
   const handleDragOver = (e) => {
     e?.preventDefault();
@@ -30,8 +37,8 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, uploadProgress }) => 
     }
   };
 
-  const handleFileSelection = (file) => {
-    if (file && file?.name?.endsWith('.zip')) {
+  const handleFileSelection = async(file) => {
+    if (file && file.name.endsWith('.zip')) {
       setSelectedFile(file);
       onFileSelect(file);
       // Initialize scan progress with file upload data
@@ -43,6 +50,42 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, uploadProgress }) => 
           uploadDate: new Date().toISOString()
         }
       });
+
+      //  BACKEND UPLOAD LOGIC
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await axios.post(`${API_BASE_URL}/upload/`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            },
+            onUploadProgress: (progressEvent) => {
+              if (progressEvent?.total) { 
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                console.log('Upload Progress:', percentCompleted);
+                if(percentCompleted === 100) {
+                  setTimeout(() => setUploadProgressState(100), 300)
+                } else {
+                  setUploadProgressState(percentCompleted);
+                }
+              }
+            }
+          });
+
+        console.log('File uploaded successfully:', response.data);
+        
+        const projectId = response?.data?.id;
+        const validationResponse = await axios.get(`${API_BASE_URL}/${projectId}/validate/`);
+        
+        onValidationComplete(validationResponse?.data);
+        
+      } catch (error) { 
+        console.error('Error uploading file:', error);
+        alert('There was an error uploading your file. Please try again.');
+      }
     } else {
       alert('Please select a valid ZIP file');
     }
@@ -85,7 +128,9 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, uploadProgress }) => 
           `}
         >
           <Icon name="Upload" size={18} />
-          <span>Upload ZIP</span>
+          <span
+            onClick={() => setUploadMethod('file')}
+          >Upload ZIP</span>
         </button>
         <button
           onClick={() => setUploadMethod('github')}
@@ -131,7 +176,7 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, uploadProgress }) => 
                   {selectedFile ? selectedFile?.name : 'Drop your ZIP file here'}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  or click to browse • Maximum size: 500MB
+                  or click to browse • Maximum size: 100MB
                 </p>
               </div>
               {!selectedFile && (
@@ -158,7 +203,7 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, uploadProgress }) => 
             </div>
           )}
 
-          {uploadProgress > 0 && uploadProgress < 100 && (
+          {uploadProgressState > 0 && uploadProgressState < 100 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Uploading...</span>
@@ -167,7 +212,7 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, uploadProgress }) => 
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full bg-primary transition-all duration-300"
-                  style={{ width: `${uploadProgress}%` }}
+                  style={{ width: `${uploadProgressState}%` }}
                 />
               </div>
             </div>

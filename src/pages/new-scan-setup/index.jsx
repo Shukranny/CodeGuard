@@ -46,18 +46,7 @@ const NewScanSetup = () => {
       file: file,
       repository: null
     }));
-
-    setUploadProgress(0);
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          simulateValidation();
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 200);
+    setUploadProgress(100);
   };
 
   const handleRepositorySubmit = (repoData) => {
@@ -72,29 +61,7 @@ const NewScanSetup = () => {
     setTimeout(() => {
       setIsProcessing(false);
       simulateValidation();
-    }, 2000);
-  };
-
-  const simulateValidation = () => {
-    const mockValidation = {
-      isValid: true,
-      languages: ['JavaScript', 'Python', 'TypeScript', 'CSS'],
-      fileCount: 1247,
-      totalSize: 45678912,
-      errors: [],
-      warnings: [
-        {
-          title: 'Large Project Detected',
-          message: 'This project contains over 1000 files. Scan may take longer than usual.'
-        }
-      ]
-    };
-
-    setConfiguration(prev => ({
-      ...prev,
-      validationData: mockValidation,
-      fileCount: mockValidation?.fileCount
-    }));
+    }, 3000);
   };
 
   const handleScannerToggle = (scannerId) => {
@@ -144,6 +111,10 @@ const NewScanSetup = () => {
             <UploadSection
               onFileSelect={handleFileSelect}
               onRepositorySubmit={handleRepositorySubmit}
+              onValidationComplete={(validationData) => setConfiguration(prev => ({
+                ...prev,
+                validationData: validationData
+              }))}
               uploadProgress={uploadProgress}
             />
             {configuration?.validationData && (

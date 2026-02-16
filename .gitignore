@@ -5,4 +5,13 @@ package-lock.json
 /build
 .vscode/
 .idea/
+venv/
+__pycache__/
+*.pyc
+db.sqlite3
+media/
+Pipfile
+Pipfile.lock
+.env
+
 vite.config.*s.*

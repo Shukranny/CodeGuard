@@ -5,6 +5,7 @@ const ProjectValidation = ({ validationData }) => {
   if (!validationData) return null;
 
   const { isValid, languages, fileCount, totalSize, errors, warnings } = validationData;
+  const [showAllLanguages, setShowAllLanguages] = React.useState(false);
 
   const formatSize = (bytes) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -43,18 +44,23 @@ const ProjectValidation = ({ validationData }) => {
             {languages?.length || 0}
           </div>
           {languages && languages?.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {languages?.slice(0, 3)?.map((lang, index) => (
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+              {(showAllLanguages ? languages : languages.slice(0, 3)).map(lang => (
                 <span
-                  key={index}
-                  className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full"
-                >
+                  key={lang}
+                  className='px-1 py-0.5 rounded-full text-xs font-medium text-blue-600'>
                   {lang}
                 </span>
               ))}
               {languages?.length > 3 && (
-                <span className="px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded-full">
-                  +{languages?.length - 3}
+                <span
+                  style={{ cursor: "pointer", fontWeight: "bold"}}
+                  onClick={() => setShowAllLanguages(!showAllLanguages)}
+                  className='px-2 py-0.5 rounded-full bg-gray-300 text-xs font-medium cursor-pointer hover:bg-muted/80 transition'
+                >
+                  {showAllLanguages
+                    ? '-' :
+                    `+${languages.length - 3}`}
                 </span>
               )}
             </div>
