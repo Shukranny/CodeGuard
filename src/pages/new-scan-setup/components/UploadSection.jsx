@@ -16,7 +16,7 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, onValidationComplete,
   const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef(null);
   const [uploadProgressState, setUploadProgressState] = useState(0);
-  
+  const [isFetchingGithub, setIsFetchingGithub] = useState(false);
 
 
   const handleDragOver = (e) => {
@@ -98,21 +98,45 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, onValidationComplete,
     }
   };
 
-  const handleRepositorySubmit = () => {
+  const handleRepositorySubmit = async () => {
     if (!repoUrl?.trim()) {
       alert('Please enter a valid repository URL');
       return;
     }
-    const repoData = { url: repoUrl, token: githubToken };
-    onRepositorySubmit(repoData);
-    // Initialize scan progress with repository data
-    initiateScan({
-      projectData: {
-        type: 'github',
-        url: repoUrl,
-        uploadDate: new Date().toISOString()
-      }
-    });
+
+    try {
+      setIsFetchingGithub(true);
+      const repoData = { url: repoUrl, token: githubToken };
+
+      // Initialize scan progress with repository data
+      initiateScan({
+        projectData: {
+          type: 'github',
+          url: repoUrl,
+          uploadDate: new Date().toISOString()
+        }
+      });
+
+      const response = await axios.post(`${API_BASE_URL}/github/`, repoData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('GitHub repo fetched successfully:', response.data);
+      const projectId = response?.data?.id;
+
+      const validationResponse = await axios.get(`${API_BASE_URL}/${projectId}/validate/`);
+      
+      onRepositorySubmit(repoData);
+      onValidationComplete(validationResponse?.data);
+
+    } catch (error) {
+      console.error('Error fetching GitHub repository:', error);
+      alert(error.response?.data?.error || 'There was an error fetching the repository. Please check the URL and token.');
+    } finally {
+      setIsFetchingGithub(false);
+    }
   };
 
   return (
@@ -207,7 +231,7 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, onValidationComplete,
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Uploading...</span>
-                <span className="text-primary font-medium">{uploadProgress}%</span>
+                <span className="text-primary font-medium">{uploadProgressState}%</span>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
@@ -275,9 +299,10 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, onValidationComplete,
             onClick={handleRepositorySubmit}
             iconName="Download"
             iconPosition="left"
-            disabled={!repoUrl?.trim()}
+            disabled={!repoUrl?.trim() || isFetchingGithub}
+            loading={isFetchingGithub}
           >
-            Fetch Repository
+            {isFetchingGithub ? 'Fetching Repository...' : 'Fetch Repository'}
           </Button>
         </div>
       )}

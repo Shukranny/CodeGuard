@@ -56,12 +56,6 @@ const NewScanSetup = () => {
       repository: repoData,
       file: null
     }));
-
-    setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      simulateValidation();
-    }, 3000);
   };
 
   const handleScannerToggle = (scannerId) => {

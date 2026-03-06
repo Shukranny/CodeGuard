@@ -9,6 +9,9 @@ from .utils.zip_validator import validate_zip
 import zipfile
 import os
 from django.conf import settings
+import requests
+from django.core.files.base import ContentFile
+import urllib.parse
 
 LANGUAGE_EXTENSIONS = {
     ".js": "JavaScript",
@@ -112,3 +115,54 @@ class ValidateProjectView(APIView):
             "errors": [],
             "warnings": []
         })
+
+class GitHubImportView(APIView):
+    def post(self, request):
+        url = request.data.get('url')
+        token = request.data.get('token')
+
+        if not url:
+            return Response({"error": "Repository URL is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Parse the GitHub URL to get the owner and repo
+        try:
+            path_parts = urllib.parse.urlparse(url).path.strip('/').split('/')
+            if len(path_parts) >= 2:
+                owner, repo = path_parts[0], path_parts[1]
+                if repo.endswith('.git'):
+                    repo = repo[:-4]
+            else:
+                return Response({"error": "Invalid GitHub URL format. Expected: https://github.com/owner/repo"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            return Response({"error": "Invalid GitHub URL"}, status=status.HTTP_400_BAD_REQUEST)
+
+        api_url = f"https://api.github.com/repos/{owner}/{repo}/zipball"
+        headers = {}
+        if token:
+            headers['Authorization'] = f"token {token}"
+
+        try:
+            response = requests.get(api_url, headers=headers, stream=True)
+            if response.status_code == 404:
+                return Response({"error": "Repository not found. It might be private or misspelled."}, status=status.HTTP_404_NOT_FOUND)
+            elif response.status_code != 200:
+                return Response({"error": f"Failed to fetch repository from GitHub. Status code: {response.status_code}"}, status=status.HTTP_400_BAD_REQUEST)
+
+            file_content = response.content
+            file_name = f"{owner}-{repo}.zip"
+
+            project = Project.objects.create(name=file_name)
+            project.zip_file.save(file_name, ContentFile(file_content))
+            
+            return Response(
+                { 
+                    'id': project.id, 
+                    'name': project.name, 
+                    'zip_file': project.zip_file.url, 
+                    'created_at': project.created_at
+                }, 
+                status=status.HTTP_201_CREATED
+            )
+
+        except requests.exceptions.RequestException as e:
+            return Response({"error": f"Error communicating with GitHub: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
