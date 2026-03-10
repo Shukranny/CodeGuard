@@ -8,6 +8,7 @@ import ProjectValidation from './components/ProjectValidation';
 import ScannerSelection from './components/ScannerSelection';
 import AdvancedOptions from './components/AdvancedOptions';
 import ScanSummary from './components/ScanSummary';
+import axios from 'axios';
 
 const NewScanSetup = () => {
   const navigate = useNavigate();
@@ -60,7 +61,7 @@ const NewScanSetup = () => {
     setIsProcessing(true);
     setTimeout(() => {
       setIsProcessing(false);
-      simulateValidation();
+      // simulateValidation(); // Real validation happens in UploadSection
     }, 3000);
   };
 
@@ -80,17 +81,36 @@ const NewScanSetup = () => {
     }));
   };
 
-  const handleStartScan = () => {
-    const scanData = {
-      id: `scan_${Date.now()}`,
-      timestamp: new Date()?.toISOString(),
-      configuration: configuration,
-      status: 'running',
-      progress: 0
-    };
+  const handleStartScan = async () => {
+    const projectId = configuration?.validationData?.id;
+    if (!projectId) {
+      alert("Project ID not found. Please re-upload your project.");
+      return;
+    }
 
-    localStorage.setItem('activeScan', JSON.stringify(scanData));
-    navigate('/scan-progress');
+    try {
+      setIsProcessing(true);
+      const response = await axios.post('http://127.0.0.1:8000/api/scans/start/', {
+        project_id: projectId,
+        selected_scanners: configuration.selectedScanners
+      });
+
+      const scanData = {
+        id: response.data.id,
+        timestamp: response.data.started_at,
+        configuration: configuration,
+        status: response.data.status,
+        progress: 0
+      };
+
+      localStorage.setItem('activeScan', JSON.stringify(scanData));
+      setIsProcessing(false);
+      navigate('/scan-progress');
+    } catch (error) {
+      console.error("Error starting scan:", error);
+      setIsProcessing(false);
+      alert("Failed to start security scan. Please check your connection and try again.");
+    }
   };
 
   const canProceedToNextStep = () => {
@@ -275,10 +295,10 @@ const NewScanSetup = () => {
                   <Icon name="Loader" size={32} color="var(--color-primary)" className="animate-spin" />
                 </div>
                 <h3 className="text-lg font-heading font-semibold text-foreground mb-2">
-                  Processing Repository
+                  Processing ...
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Fetching and validating your project...
+                  Please wait while we set up your security scan.
                 </p>
               </div>
             </div>

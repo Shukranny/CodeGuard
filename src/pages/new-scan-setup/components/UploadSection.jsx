@@ -80,7 +80,7 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, onValidationComplete,
         const projectId = response?.data?.id;
         const validationResponse = await axios.get(`${API_BASE_URL}/${projectId}/validate/`);
         
-        onValidationComplete(validationResponse?.data);
+        onValidationComplete({ ...validationResponse?.data, id: projectId });
         
       } catch (error) { 
         console.error('Error uploading file:', error);
