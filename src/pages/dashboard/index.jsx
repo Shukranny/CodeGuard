@@ -12,11 +12,13 @@ import RecentAIExplanationCard from './components/RecentAIExplanationCard';
 import ActiveScanProgress from './components/ActiveScanProgress';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
+import axios from 'axios';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [timeRange, setTimeRange] = useState('7d');
   const [activeScan, setActiveScan] = useState(null);
+  const [recentScans, setRecentScans] = useState([]);
 
   const metricsData = [
     {
@@ -54,69 +56,6 @@ const Dashboard = () => {
       icon: 'TrendingDown',
       iconColor: 'var(--color-success)',
       trend: 'Overall security improving'
-    }
-  ];
-
-  const recentScans = [
-    {
-      id: 'scan-001',
-      projectName: 'E-Commerce Platform API',
-      timestamp: '2026-01-20T11:45:00',
-      scanType: 'Full Security Scan',
-      riskScore: 78,
-      findings: {
-        critical: 5,
-        high: 12,
-        medium: 23,
-        low: 45,
-        total: 85
-      },
-      filesScanned: 342
-    },
-    {
-      id: 'scan-002',
-      projectName: 'Payment Gateway Service',
-      timestamp: '2026-01-20T09:30:00',
-      scanType: 'Dependency Scan',
-      riskScore: 92,
-      findings: {
-        critical: 8,
-        high: 15,
-        medium: 18,
-        low: 12,
-        total: 53
-      },
-      filesScanned: 156
-    },
-    {
-      id: 'scan-003',
-      projectName: 'User Authentication Module',
-      timestamp: '2026-01-19T16:20:00',
-      scanType: 'Secret Detection',
-      riskScore: 45,
-      findings: {
-        critical: 2,
-        high: 5,
-        medium: 8,
-        low: 15,
-        total: 30
-      },
-      filesScanned: 89
-    },
-    {
-      id: 'scan-004',
-      projectName: 'Mobile App Backend',
-      timestamp: '2026-01-19T14:10:00',
-      scanType: 'Full Security Scan',
-      riskScore: 67,
-      findings: {
-        critical: 4,
-        high: 9,
-        medium: 15,
-        low: 28,
-        total: 56
-      },
-      filesScanned: 234
     }
   ];
 
@@ -221,17 +160,35 @@ const Dashboard = () => {
   ];
 
   useEffect(() => {
-    const mockActiveScan = {
-      id: 'scan-active-001',
-      projectName: 'Customer Portal Frontend',
-      phase: 'Analyzing Dependencies',
-      progress: 67,
-      filesScanned: 234,
-      findings: 18,
-      elapsed: '2m 34s'
+    const fetchScans = async () => {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/scans/');
+        const mappedScans = response.data.map(scan => ({
+          id: scan.id,
+          projectName: scan.project_name || "Unknown Project",
+          timestamp: scan.started_at,
+          scanType: "Security Scan",
+          riskScore: scan.result?.riskScore || 0,
+          findings: scan.result?.findings || { 
+            critical: 0, 
+            high: 0, 
+            medium: 0, 
+            low: 0, 
+            total: 0 
+          },
+          filesScanned: scan.result?.fileCount || 0
+        }));
+        setRecentScans(mappedScans);
+      } catch (error) {
+        console.error("Error fetching scans:", error);
+      }
     };
-    setActiveScan(mockActiveScan);
-    localStorage.setItem('activeScan', JSON.stringify(mockActiveScan));
+    fetchScans();
+
+    const storedScan = localStorage.getItem('activeScan');
+    if (storedScan) {
+      setActiveScan(JSON.parse(storedScan));
+    }
   }, []);
 
   const timeRangeOptions = [
