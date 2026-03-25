@@ -98,13 +98,13 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, onValidationComplete,
     }
   };
 
-  const handleRepositorySubmit = () => {
+  const handleRepositorySubmit = async () => {
     if (!repoUrl?.trim()) {
       alert('Please enter a valid repository URL');
       return;
     }
     const repoData = { url: repoUrl, token: githubToken };
-    onRepositorySubmit(repoData);
+
     // Initialize scan progress with repository data
     initiateScan({
       projectData: {
@@ -113,6 +113,30 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, onValidationComplete,
         uploadDate: new Date().toISOString()
       }
     });
+
+    try {
+      setUploadProgressState(10);
+      
+      const payload = { url: repoUrl };
+      if (githubToken) {
+        payload.token = githubToken;
+      }
+
+      const response = await axios.post(`${API_BASE_URL}/github/`, payload);
+      setUploadProgressState(70);
+
+      const projectId = response?.data?.id;
+      const validationResponse = await axios.get(`${API_BASE_URL}/${projectId}/validate/`);
+      
+      setUploadProgressState(100);
+      onValidationComplete({ ...validationResponse?.data, id: projectId });
+      onRepositorySubmit(repoData);
+      
+    } catch (error) {
+      console.error('Error fetching repository:', error);
+      alert('There was an error fetching your repository. Please check the URL and token.');
+      setUploadProgressState(0);
+    }
   };
 
   return (
@@ -275,10 +299,25 @@ const UploadSection = ({ onFileSelect, onRepositorySubmit, onValidationComplete,
             onClick={handleRepositorySubmit}
             iconName="Download"
             iconPosition="left"
-            disabled={!repoUrl?.trim()}
+            disabled={!repoUrl?.trim() || (uploadProgressState > 0 && uploadProgressState < 100)}
           >
-            Fetch Repository
+            {uploadProgressState > 0 && uploadProgressState < 100 ? 'Fetching...' : 'Fetch Repository'}
           </Button>
+          
+          {uploadProgressState > 0 && uploadProgressState < 100 && (
+            <div className="space-y-2 mt-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Fetching repository...</span>
+                <span className="text-primary font-medium">{uploadProgressState}%</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{ width: `${uploadProgressState}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

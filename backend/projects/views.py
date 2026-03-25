@@ -8,6 +8,12 @@ from .serializers import ZipUploadSerializer, ProjectListSerializer
 from .utils.zip_validator import validate_zip
 import zipfile
 import os
+import re
+import json
+import urllib.request
+import urllib.error
+import urllib.parse
+from django.core.files.base import ContentFile
 from django.conf import settings
 
 LANGUAGE_EXTENSIONS = {
@@ -52,6 +58,63 @@ class ZipUploadView(APIView):
             }, 
             status=status.HTTP_201_CREATED
         )
+
+class GitHubUploadView(APIView):
+    def post(self, request):
+        url = request.data.get('url')
+        token = request.data.get('token')
+        
+        if not url:
+            return Response({'error': 'URL is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Extract owner and repo
+        match = re.match(r'https?://github\.com/([^/]+)/([^/.]+)(?:\.git)?/?', url)
+        if not match:
+            return Response({'error': 'Invalid GitHub URL'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        owner, repo = match.groups()
+        
+        # Get default branch
+        api_url = f'https://api.github.com/repos/{owner}/{repo}'
+        headers = {'Accept': 'application/vnd.github.v3+json'}
+        if token:
+            headers['Authorization'] = f'token {token}'
+            
+        try:
+            req = urllib.request.Request(api_url, headers=headers)
+            with urllib.request.urlopen(req) as response:
+                repo_data = json.loads(response.read().decode())
+                default_branch = repo_data.get('default_branch', 'main')
+        except urllib.error.HTTPError as e:
+            return Response({'error': f'Failed to fetch repository metadata: {e.reason}'}, status=e.code)
+        except Exception as e:
+            return Response({'error': f'Failed to fetch repository metadata: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+        # Download zipball
+        zip_url = f'https://api.github.com/repos/{owner}/{repo}/zipball/{default_branch}'
+        try:
+            req = urllib.request.Request(zip_url, headers=headers)
+            with urllib.request.urlopen(req) as response:
+                zip_content = response.read()
+                
+            project = Project.objects.create(
+                name=f'{owner}_{repo}.zip',
+            )
+            project.zip_file.save(f'{owner}_{repo}.zip', ContentFile(zip_content))
+            return Response(
+                { 
+                    'id': str(project.id), 
+                    'name': project.name, 
+                    'zip_file': project.zip_file.url if project.zip_file else None, 
+                    'created_at': project.created_at
+                }, 
+                status=status.HTTP_201_CREATED
+            )
+        except urllib.error.HTTPError as e:
+            return Response({'error': f'Failed to download repository: {e.reason}'}, status=e.code)
+        except Exception as e:
+            return Response({'error': f'Failed to download repository: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     
 class ProjectListView(ListAPIView):
     queryset = Project.objects.all().order_by('-created_at')
