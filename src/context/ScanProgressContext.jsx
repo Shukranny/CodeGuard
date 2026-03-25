@@ -26,28 +26,115 @@ export const ScanProgressProvider = ({ children }) => {
     }
   }, [scanState, isScanActive]);
 
-  const initiateScan = (projectData) => {
+  const initiateScan = (initialData) => {
+    const defaultStages = [
+      {
+        id: 'init',
+        name: 'Initialization',
+        description: 'Setting up scan environment and validating project structure',
+        icon: 'Settings',
+        progress: 100,
+        filesProcessed: 0,
+        rulesExecuted: 0,
+        duration: '12s'
+      },
+      {
+        id: 'analysis',
+        name: 'File Analysis',
+        description: 'Analyzing project files and detecting programming languages',
+        icon: 'FileSearch',
+        progress: 0,
+        filesProcessed: 0,
+        rulesExecuted: 0,
+        duration: null
+      },
+      {
+        id: 'dependencies',
+        name: 'Dependency Resolution',
+        description: 'Scanning package manifests and checking for known vulnerabilities',
+        icon: 'Package',
+        progress: 0,
+        filesProcessed: 0,
+        rulesExecuted: 0,
+        duration: null
+      },
+      {
+        id: 'static',
+        name: 'Static Code Analysis',
+        description: 'Running Semgrep rules to detect security vulnerabilities',
+        icon: 'Code',
+        progress: 0,
+        filesProcessed: 0,
+        rulesExecuted: 0,
+        duration: null
+      },
+      {
+        id: 'secrets',
+        name: 'Secret Detection',
+        description: 'Scanning for exposed credentials and sensitive information',
+        icon: 'Key',
+        progress: 0,
+        filesProcessed: 0,
+        rulesExecuted: 0,
+        duration: null
+      },
+      {
+        id: 'report',
+        name: 'Report Generation',
+        description: 'Compiling findings and generating comprehensive security report',
+        icon: 'FileText',
+        progress: 0,
+        filesProcessed: 0,
+        rulesExecuted: 0,
+        duration: null
+      }
+    ];
+
     const newScanState = {
       isActive: true,
-      projectData,
-      stages: projectData?.stages || [],
-      scanners: projectData?.scanners || [],
+      id: initialData?.id || 'new_scan',
+      projectName: initialData?.projectName || initialData?.name || initialData?.projectData?.filename || 'New Project',
+      projectData: initialData?.projectData || initialData,
+      stages: (initialData?.stages && initialData.stages.length > 0) ? initialData.stages : defaultStages,
+      scanners: initialData?.scanners || [],
       currentStage: 0,
       overallProgress: 0,
       scanStartTime: new Date().toISOString(),
-      findings: projectData?.findings || null,
-      technicalDetails: projectData?.technicalDetails || null,
+      findings: initialData?.findings || null,
+      technicalDetails: initialData?.technicalDetails || null,
     };
     setScanState(newScanState);
     setIsScanActive(true);
     saveScanProgress(newScanState);
+    
+    // For compatibility with parts of the app using 'activeScan' key
+    localStorage.setItem('activeScan', JSON.stringify({
+      id: newScanState.id,
+      timestamp: newScanState.scanStartTime,
+      status: 'running',
+      progress: 0,
+      projectName: newScanState.projectName
+    }));
   };
 
   const updateScanProgress = (updates) => {
-    setScanState((prev) => ({
-      ...prev,
-      ...updates,
-    }));
+    setScanState((prev) => {
+      const newState = {
+        ...prev,
+        ...updates,
+      };
+
+      // Keep 'activeScan' in sync for parts of the app using this key
+      localStorage.setItem('activeScan', JSON.stringify({
+        id: newState.projectData?.id || 'new_scan',
+        timestamp: newState.scanStartTime,
+        status: (newState.overallProgress >= 100) ? 'completed' : 'running',
+        progress: Math.round(newState.overallProgress || 0),
+        projectName: newState.projectName || newState.projectData?.projectName || newState.projectData?.name || newState.projectData?.filename || 'New Project'
+      }));
+
+      return newState;
+    });
   };
 
   const updateStageProgress = (stageIndex, progress) => {

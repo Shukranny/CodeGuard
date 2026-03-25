@@ -9,9 +9,11 @@ import ScannerSelection from './components/ScannerSelection';
 import AdvancedOptions from './components/AdvancedOptions';
 import ScanSummary from './components/ScanSummary';
 import axios from 'axios';
+import { useScanProgress } from '../../context/ScanProgressContext';
 
 const NewScanSetup = () => {
   const navigate = useNavigate();
+  const { initiateScan } = useScanProgress();
   const [currentStep, setCurrentStep] = useState(1);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -95,15 +97,15 @@ const NewScanSetup = () => {
         selected_scanners: configuration.selectedScanners
       });
 
-      const scanData = {
+      initiateScan({
         id: response.data.id,
-        timestamp: response.data.started_at,
-        configuration: configuration,
-        status: response.data.status,
-        progress: 0
-      };
-
-      localStorage.setItem('activeScan', JSON.stringify(scanData));
+        projectName: configuration?.validationData?.projectName || "New Scan",
+        scanners: configuration.selectedScanners,
+        projectData: {
+          id: projectId,
+          ...configuration
+        }
+      });
       setIsProcessing(false);
       navigate('/scan-progress');
     } catch (error) {

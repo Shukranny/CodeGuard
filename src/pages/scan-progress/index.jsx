@@ -18,7 +18,7 @@ const ScanProgress = () => {
   const [scanComplete, setScanComplete] = useState(false);
 
   const [stages, setStages] = useState(() => {
-    return scanState?.stages || [
+    return (scanState?.stages && scanState.stages.length > 0) ? scanState.stages : [
       {
         id: 'init',
         name: 'Initialization',
@@ -228,30 +228,47 @@ const ScanProgress = () => {
         const newStages = [...prevStages];
         const activeStage = newStages?.[currentStage];
 
+        let nextCurrentStage = currentStage;
+        let nextScanComplete = scanComplete;
+        let nextTotalProgress = overallProgress;
+
         if (activeStage && activeStage?.progress < 100) {
           activeStage.progress = Math.min(activeStage?.progress + Math.random() * 15, 100);
           activeStage.filesProcessed = Math.floor((activeStage?.progress / 100) * 456);
           activeStage.rulesExecuted = Math.floor((activeStage?.progress / 100) * 2500);
+        }
 
-          if (activeStage?.progress >= 100) {
+        if (activeStage && activeStage?.progress >= 100) {
+          if (!activeStage.duration) {
             activeStage.duration = `${Math.floor(Math.random() * 30 + 10)}s`;
-            if (currentStage < newStages?.length - 1) {
-              setCurrentStage(currentStage + 1);
-            } else {
-              setScanComplete(true);
-            }
+          }
+          if (currentStage < newStages?.length - 1) {
+            nextCurrentStage = currentStage + 1;
+          } else {
+            nextScanComplete = true;
           }
         }
 
-        const totalProgress = newStages?.reduce((sum, stage) => sum + stage?.progress, 0) / newStages?.length;
-        setOverallProgress(totalProgress);
+        nextTotalProgress = newStages?.length > 0 
+          ? newStages?.reduce((sum, stage) => sum + stage?.progress, 0) / newStages?.length
+          : 0;
 
-        // Persist progress state
-        updateScanProgress({
-          stages: newStages,
-          currentStage,
-          overallProgress: totalProgress,
-        });
+        // Side effects must be deferred or moved outside
+        setTimeout(() => {
+          setOverallProgress(nextTotalProgress);
+          if (nextCurrentStage !== currentStage) {
+            setCurrentStage(nextCurrentStage);
+          }
+          if (nextScanComplete !== scanComplete) {
+            setScanComplete(nextScanComplete);
+          }
+
+          updateScanProgress({
+            stages: newStages,
+            currentStage: nextCurrentStage,
+            overallProgress: nextTotalProgress,
+          });
+        }, 0);
 
         return newStages;
       });
@@ -346,7 +363,6 @@ const ScanProgress = () => {
         </div>
       </main>
       <ScanProgressIndicator 
-        scanId={metadata?.scanId}
         onComplete={handleScanComplete}
       />
     </div>

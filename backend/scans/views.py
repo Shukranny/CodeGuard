@@ -2,14 +2,23 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 from django.utils import timezone
 from .models import Scan, Project
 from .serializers import ScanSerializer
 from projects.utils.zip_validator import validate_zip
+from .services.scanner_runner import ScannerRunner
+import tempfile
+import zipfile
+import shutil
+import os
 
 class ScanListView(ListAPIView):
     queryset = Scan.objects.all().order_by('-started_at')
+    serializer_class = ScanSerializer
+
+class ScanDetailView(RetrieveAPIView):
+    queryset = Scan.objects.all()
     serializer_class = ScanSerializer
 
 class StartScanView(APIView):
@@ -28,11 +37,28 @@ class StartScanView(APIView):
             )
             
             try:
-                # Perform the scan (currently just validation)
+                # Perform the scan validation
                 validation_result = validate_zip(project.zip_file.path)
                 
+                # Extract the zip file to run the actual security scanners
+                scan_results = {}
+                extract_dir = tempfile.mkdtemp()
+                try:
+                    with zipfile.ZipFile(project.zip_file.path, 'r') as zip_ref:
+                        zip_ref.extractall(extract_dir)
+                    
+                    # Run selected scanners
+                    runner = ScannerRunner(extract_dir, scanners)
+                    scan_results = runner.run_all()
+                finally:
+                    # Clean up temporary directory
+                    shutil.rmtree(extract_dir, ignore_errors=True)
+
                 # Update with results
-                scan.result = validation_result
+                scan.result = {
+                    'validation': validation_result,
+                    'scans': scan_results
+                }
                 scan.status = 'completed'
                 scan.completed_at = timezone.now()
                 scan.save()

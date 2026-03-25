@@ -2,41 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../AppIcon';
 import Button from '../ui/Button';
+import { useScanProgress } from '../../context/ScanProgressContext';
 
-const ScanProgressIndicator = ({ scanId, onComplete }) => {
+const ScanProgressIndicator = ({ onComplete }) => {
   const navigate = useNavigate();
-  const [scanData, setScanData] = useState({
-    phase: 'Initializing',
-    progress: 0,
-    findings: 0,
-    status: 'running'
-  });
+  const { scanState } = useScanProgress();
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const progress = Math.round(scanState?.overallProgress || 0);
+  const status = scanState?.isActive ? 'running' : 'completed';
+  
+  const phases = ['Initializing', 'Analyzing Dependencies', 'Scanning Code', 'Detecting Vulnerabilities', 'Generating Report'];
+  const phaseIndex = Math.floor((progress / 100) * phases.length);
+  const currentPhase = phases[Math.min(phaseIndex, phases.length - 1)];
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      setScanData(prev => {
-        if (prev?.progress >= 100) {
-          clearInterval(interval);
-          if (onComplete) onComplete();
-          return { ...prev, status: 'completed' };
-        }
+    if (progress >= 100 && onComplete) {
+      onComplete();
+    }
+  }, [progress, onComplete]);
 
-        const newProgress = Math.min(prev?.progress + Math.random() * 10, 100);
-        const phases = ['Initializing', 'Analyzing Dependencies', 'Scanning Code', 'Detecting Vulnerabilities', 'Generating Report'];
-        const phaseIndex = Math.floor((newProgress / 100) * phases?.length);
-        
-        return {
-          ...prev,
-          progress: newProgress,
-          phase: phases?.[Math.min(phaseIndex, phases?.length - 1)],
-          findings: Math.floor(newProgress / 10)
-        };
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [onComplete]);
+  const scanData = {
+    phase: currentPhase,
+    progress: progress,
+    findings: scanState?.findings?.length || 0,
+    status: status
+  };
 
   const getStatusColor = () => {
     if (scanData?.status === 'completed') return 'text-success';
