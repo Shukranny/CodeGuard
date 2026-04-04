@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Icon from '../AppIcon';
 import Button from '../ui/Button';
 
-const AIExplanationOverlay = ({ vulnerability, onClose }) => {
+const AIExplanationOverlay = ({ vulnerability, onExport, onResolve, onClose }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isVisible, setIsVisible] = useState(false);
 
@@ -311,6 +311,7 @@ const AIExplanationOverlay = ({ vulnerability, onClose }) => {
               variant="outline"
               iconName="Download"
               iconPosition="left"
+              onClick={() => onExport?.('pdf')}
             >
               Export Report
             </Button>
@@ -318,6 +319,10 @@ const AIExplanationOverlay = ({ vulnerability, onClose }) => {
               variant="default"
               iconName="CheckCircle"
               iconPosition="left"
+              onClick={() => {
+                onResolve?.(vulnerability?.id);
+                handleClose();
+              }}
             >
               Mark as Resolved
             </Button>

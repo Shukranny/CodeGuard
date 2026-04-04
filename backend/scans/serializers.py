@@ -13,12 +13,12 @@ class ScanSerializer(serializers.ModelSerializer):
             'scanners',
             'result',
             'status',
+            'dismissed_findings',
             'started_at',
             'completed_at'
         ]
 
         read_only_fields = [
-            'status',
             'started_at',
             'completed_at'
         ]

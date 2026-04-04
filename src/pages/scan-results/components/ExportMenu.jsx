@@ -6,8 +6,8 @@ const ExportMenu = ({ onExport }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const exportFormats = [
-    { id: 'json', label: 'JSON Report', icon: 'FileJson', description: 'Machine-readable format' },
     { id: 'pdf', label: 'PDF Report', icon: 'FileText', description: 'Human-readable document' },
+    { id: 'json', label: 'JSON Report', icon: 'FileJson', description: 'Machine-readable format' },
     { id: 'sarif', label: 'SARIF Format', icon: 'FileCode', description: 'Static analysis format' },
     { id: 'csv', label: 'CSV Export', icon: 'Table', description: 'Spreadsheet compatible' }
   ];

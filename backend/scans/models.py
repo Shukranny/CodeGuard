@@ -8,7 +8,8 @@ class Scan(models.Model):
         ('pending', 'Pending'),
         ('running', 'Running'),
         ('completed', 'Completed'),
-        ('failed', 'Failed')
+        ('failed', 'Failed'),
+        ('resolved', 'Resolved')
     ]
     project = models.ForeignKey(
         Project, 
@@ -23,6 +24,10 @@ class Scan(models.Model):
         blank=True
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    dismissed_findings = models.JSONField(
+        default=list,
+        blank=True
+    )
     started_at = models.DateTimeField(default=timezone.now)
     completed_at = models.DateTimeField(default=timezone.now)
 

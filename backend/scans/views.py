@@ -77,3 +77,38 @@ class StartScanView(APIView):
             return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': f'An unexpected error occurred: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+class ResolveScanView(APIView):
+    def patch(self, request, pk):
+        scan = get_object_or_404(Scan, pk=pk)
+        scan.status = 'resolved'
+        scan.save()
+        serializer = ScanSerializer(scan)
+        return Response(serializer.data)
+
+class DismissFindingView(APIView):
+    def post(self, request, pk):
+        scan = get_object_or_404(Scan, pk=pk)
+        finding_id = request.data.get('finding_id')
+        
+        if not finding_id:
+            return Response({'error': 'finding_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if finding_id not in scan.dismissed_findings:
+            scan.dismissed_findings.append(finding_id)
+            scan.save()
+            
+        return Response({'success': True, 'dismissed_findings': scan.dismissed_findings})
+
+    def delete(self, request, pk):
+        scan = get_object_or_404(Scan, pk=pk)
+        finding_id = request.data.get('finding_id')
+        
+        if not finding_id:
+            return Response({'error': 'finding_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if finding_id in scan.dismissed_findings:
+            scan.dismissed_findings.remove(finding_id)
+            scan.save()
+            
+        return Response({'success': True, 'dismissed_findings': scan.dismissed_findings})

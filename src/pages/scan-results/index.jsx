@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useScanProgress } from '../../context/ScanProgressContext';
 import Header from '../../components/navigation/Header';
 import AIExplanationOverlay from '../../components/navigation/AIExplanationOverlay';
@@ -66,6 +68,7 @@ const ScanResults = () => {
 
   const transformScanData = (rawData) => {
     const scannersData = rawData?.result?.scans || {};
+    const dismissedIds = rawData?.dismissed_findings || [];
     const findings = [];
     
     // Severity mapping
@@ -103,7 +106,8 @@ const ScanResults = () => {
           description: f.extra?.message || 'No description available',
           codeSnippet: f.extra?.lines || '',
           remediation: f.extra?.metadata?.remediation || f.extra?.message || 'Follow security best practices to remediate this issue.',
-          fixCode: f.extra?.fix || null
+          fixCode: f.extra?.fix || null,
+          isDismissed: dismissedIds.includes(`semgrep_${idx}`)
         });
       });
     }
@@ -125,7 +129,8 @@ const ScanResults = () => {
           description: `Hardcoded ${f.Description} detected in ${f.File}. These secrets should be moved to secure vaults or environment variables.`,
           codeSnippet: f.Match || '',
           remediation: 'Remove the hardcoded secret immediately. Revoke the credential and rotate it if it was previously pushed to a repository.',
-          fixCode: '// Use environment variables or a secret manager instead\nconst apiKey = process.env.API_KEY;'
+          fixCode: '// Use environment variables or a secret manager instead\nconst apiKey = process.env.API_KEY;',
+          isDismissed: dismissedIds.includes(`gitleaks_${idx}`)
         });
       });
     }
@@ -147,7 +152,8 @@ const ScanResults = () => {
           description: `Package ${pkg} has security vulnerabilities. Summary: ${scannersData.dependency.summary || 'N/A'}`,
           codeSnippet: `"package": "${pkg}", "version": "${info.range}"`,
           remediation: `Update ${pkg} to the latest secure version by running the following command in your terminal.`,
-          fixCode: `npm update ${pkg}`
+          fixCode: `npm update ${pkg}`,
+          isDismissed: dismissedIds.includes(`dep_${pkg}`)
         });
       });
     }
@@ -228,12 +234,325 @@ const ScanResults = () => {
     setShowAIExplanation(true);
   };
 
-  const handleDismissFinding = (findingId) => {
-    console.log('Dismissing finding:', findingId);
+  const handleDismissFinding = async (findingId) => {
+    if (!scanData) return;
+    
+    const finding = scanData.findings.find(f => f.id === findingId);
+    if (!finding) return;
+
+    const newDismissedState = !finding.isDismissed;
+    
+    // Optimistic Update
+    const updatedFindings = scanData.findings.map(f => 
+      f.id === findingId ? { ...f, isDismissed: newDismissedState } : f
+    );
+    
+    // Recalculate distribution and stats (only for NON-dismissed findings)
+    const activeFindings = updatedFindings.filter(f => !f.isDismissed);
+    const distribution = { critical: 0, high: 0, medium: 0, low: 0 };
+    activeFindings.forEach(f => {
+      distribution[f.severity]++;
+    });
+    
+    const updatedStats = {
+      ...scanData.stats,
+      totalFindings: activeFindings.length,
+      critical: distribution.critical,
+      high: distribution.high,
+      medium: distribution.medium,
+      low: distribution.low
+    };
+    
+    const score = Math.max(0, 100 - (distribution.critical * 10 + distribution.high * 5 + distribution.medium * 2));
+    
+    const filesMap = {};
+    activeFindings.forEach(f => {
+      if (!filesMap[f.file]) {
+        filesMap[f.file] = {
+          path: f.file,
+          vulnerabilities: 0,
+          riskScore: 0,
+          highestSeverity: 'low'
+        };
+      }
+      filesMap[f.file].vulnerabilities++;
+      const severityScores = { critical: 40, high: 20, medium: 10, low: 5 };
+      filesMap[f.file].riskScore = Math.min(100, filesMap[f.file].riskScore + (severityScores[f.severity] || 0));
+      
+      const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+      if (severityOrder[f.severity] > severityOrder[filesMap[f.file].highestSeverity]) {
+        filesMap[f.file].highestSeverity = f.severity;
+      }
+    });
+
+    const topRiskyFiles = Object.values(filesMap)
+      .sort((a, b) => b.riskScore - a.riskScore)
+      .slice(0, 4);
+    
+    setScanData(prev => ({
+      ...prev,
+      findings: updatedFindings,
+      stats: updatedStats,
+      severityDistribution: distribution,
+      overallRiskScore: score,
+      topRiskyFiles: topRiskyFiles
+    }));
+
+    // PERSISTENCE
+    try {
+      if (newDismissedState) {
+        await axios.post(`http://127.0.0.1:8000/api/scans/${scanData.scanId}/dismiss/`, { finding_id: findingId });
+      } else {
+        await axios.delete(`http://127.0.0.1:8000/api/scans/${scanData.scanId}/dismiss/`, { data: { finding_id: findingId } });
+      }
+      console.log(`Finding ${newDismissedState ? 'dismissed' : 'restored'} in backend:`, findingId);
+    } catch (err) {
+      console.error('Failed to update finding dismissal status:', err);
+      // Revert on error? Skipping for simplicity in this demo but usually recommended
+    }
   };
 
   const handleExport = (format) => {
-    console.log('Exporting as:', format);
+    if (!scanData) return;
+
+    const exportData = {
+      ...scanData,
+      exportedAt: new Date().toISOString(),
+      tool: 'CodeGuard'
+    };
+
+    let blob;
+    let filename = `codeguard-report-${scanData.scanId || 'export'}-${new Date().getTime()}`;
+
+    if (format === 'json') {
+      blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      filename += '.json';
+    } else if (format === 'csv') {
+      const headers = ['ID', 'Title', 'Severity', 'Confidence', 'Scanner', 'File', 'Line', 'CWE', 'OWASP', 'Description'];
+      const rows = scanData.findings.map(f => [
+        f.id,
+        `"${f.title.replace(/"/g, '""')}"`,
+        f.severity,
+        f.confidence,
+        f.scanner,
+        f.file,
+        f.line,
+        f.cwe || 'N/A',
+        f.owasp || 'N/A',
+        `"${f.description.replace(/"/g, '""')}"`
+      ]);
+      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      blob = new Blob([csvContent], { type: 'text/csv' });
+      filename += '.csv';
+    } else if (format === 'sarif') {
+      // Basic SARIF structure
+      const sarif = {
+        $schema: "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
+        version: "2.1.0",
+        runs: [{
+          tool: {
+            driver: {
+              name: "CodeGuard",
+              version: "1.0.0",
+              rules: Array.from(new Set(scanData.findings.map(f => f.scanner))).map(scanner => ({
+                id: scanner,
+                name: `${scanner} Analysis`
+              }))
+            }
+          },
+          results: scanData.findings.map(f => ({
+            ruleId: f.scanner,
+            message: { text: f.title },
+            locations: [{
+              physicalLocation: {
+                artifactLocation: { uri: f.file },
+                region: { startLine: f.line || 1 }
+              }
+            }],
+            properties: {
+              severity: f.severity,
+              confidence: f.confidence,
+              cwe: f.cwe,
+              owasp: f.owasp
+            }
+          }))
+        }]
+      };
+      blob = new Blob([JSON.stringify(sarif, null, 2)], { type: 'application/json' });
+      filename += '.sarif';
+    } else if (format === 'pdf') {
+      const doc = new jsPDF();
+      
+      // Add Title
+      doc.setFontSize(22);
+      doc.setTextColor(30, 41, 59); // var(--color-foreground)
+      doc.text("CodeGuard Security Report", 14, 22);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139); // var(--color-muted-foreground)
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+      
+      // Project Summary
+      doc.setFontSize(14);
+      doc.setTextColor(30, 41, 59);
+      doc.text("Scan Summary", 14, 45);
+      
+      doc.setFontSize(10);
+      doc.text(`Project Name: ${scanData.projectName}`, 14, 52);
+      doc.text(`Scan ID: ${scanData.scanId}`, 14, 57);
+      doc.text(`Total Findings: ${scanData.stats.totalFindings}`, 14, 62);
+      doc.text(`Overall Risk Score: ${scanData.overallRiskScore}/100`, 14, 67);
+      
+      // Severity Table
+      autoTable(doc, {
+        startY: 75,
+        head: [['Severity', 'Count']],
+        body: [
+          ['Critical', scanData.stats.critical],
+          ['High', scanData.stats.high],
+          ['Medium', scanData.stats.medium],
+          ['Low', scanData.stats.low]
+        ],
+        theme: 'striped',
+        headStyles: { fillStyle: 'F59E0B' }, // Warning color (amber)
+        margin: { top: 10 }
+      });
+      
+      // Findings Overview Table
+      doc.setFontSize(14);
+      doc.setTextColor(30, 41, 59);
+      doc.text("Findings Overview", 14, (doc).lastAutoTable.finalY + 15);
+      
+      autoTable(doc, {
+        startY: (doc).lastAutoTable.finalY + 20,
+        head: [['Severity', 'Scanner', 'File', 'Line', 'Title']],
+        body: scanData.findings.map(f => [
+          f.severity.toUpperCase(),
+          f.scanner,
+          f.file,
+          f.line,
+          f.title
+        ]),
+        styles: { fontSize: 8 },
+        columnStyles: {
+          0: { cellWidth: 20 },
+          1: { cellWidth: 20 },
+          2: { cellWidth: 40 },
+          3: { cellWidth: 15 },
+          4: { cellWidth: 'auto' }
+        },
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 0) {
+            const severity = data.cell.raw.toLowerCase();
+            if (severity === 'critical') data.cell.styles.textColor = [239, 68, 68];
+            else if (severity === 'high') data.cell.styles.textColor = [245, 158, 11];
+            else if (severity === 'medium') data.cell.styles.textColor = [59, 130, 246];
+            else data.cell.styles.textColor = [16, 185, 129];
+          }
+        }
+      });
+
+      // Detailed Remediation Section
+      doc.addPage();
+      doc.setFontSize(18);
+      doc.setTextColor(30, 41, 59);
+      doc.text("Detailed Findings & Remediation", 14, 22);
+      
+      let currentY = 35;
+      const severityColors = {
+        critical: [239, 68, 68],
+        high: [245, 158, 11],
+        medium: [59, 130, 246],
+        low: [16, 185, 129]
+      };
+
+      scanData.findings.forEach((f, index) => {
+        // Approximate height calculation to handle page breaks
+        const descriptionLines = doc.splitTextToSize(f.description || '', 180);
+        const remediationLines = doc.splitTextToSize(f.remediation || '', 180);
+        const codeHeight = (f.codeSnippet ? 20 : 0) + (f.fixCode ? 20 : 0);
+        const estimatedHeight = 30 + (descriptionLines.length * 5) + (remediationLines.length * 5) + codeHeight;
+
+        if (currentY + estimatedHeight > 280) {
+          doc.addPage();
+          currentY = 20;
+        }
+
+        // Finding Header
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(...(severityColors[f.severity.toLowerCase()] || [30, 41, 59]));
+        doc.text(`${index + 1}. ${f.title}`, 14, currentY);
+        currentY += 6;
+
+        // Metadata
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Severity: ${f.severity.toUpperCase()} | Scanner: ${f.scanner} | Location: ${f.file}:${f.line}`, 14, currentY);
+        currentY += 8;
+
+        // Description
+        doc.setFontSize(10);
+        doc.setTextColor(30, 41, 59);
+        doc.setFont(undefined, 'bold');
+        doc.text("Description:", 14, currentY);
+        currentY += 5;
+        doc.setFont(undefined, 'normal');
+        doc.text(descriptionLines, 14, currentY);
+        currentY += (descriptionLines.length * 5) + 4;
+
+        // Remediation
+        doc.setFont(undefined, 'bold');
+        doc.text("Remediation Guidance:", 14, currentY);
+        currentY += 5;
+        doc.setFont(undefined, 'normal');
+        doc.text(remediationLines, 14, currentY);
+        currentY += (remediationLines.length * 5) + 6;
+
+        // Code Snippets
+        if (f.codeSnippet) {
+          autoTable(doc, {
+            startY: currentY,
+            head: [['Vulnerable Code']],
+            body: [[f.codeSnippet]],
+            styles: { fontSize: 8, font: 'courier' },
+            headStyles: { fillStyle: 'FEE2E2', textColor: [153, 27, 27] }, // Light red
+            margin: { left: 14, right: 14 }
+          });
+          currentY = (doc).lastAutoTable.finalY + 6;
+        }
+
+        if (f.fixCode) {
+          autoTable(doc, {
+            startY: currentY,
+            head: [['Suggested Fix']],
+            body: [[f.fixCode]],
+            styles: { fontSize: 8, font: 'courier' },
+            headStyles: { fillStyle: 'DCFCE7', textColor: [22, 101, 52] }, // Light green
+            margin: { left: 14, right: 14 }
+          });
+          currentY = (doc).lastAutoTable.finalY + 6;
+        }
+
+        currentY += 10; // Space between findings
+      });
+      
+      doc.save(`${filename}.pdf`);
+      return;
+    } else {
+      console.warn('Unsupported export format:', format);
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleSort = (field) => {
@@ -251,6 +570,11 @@ const ScanResults = () => {
     if (filters?.language !== 'all' && finding?.language !== filters?.language) return false;
     if (filters?.owaspCategories?.length > 0 && !filters?.owaspCategories?.some(cat => finding?.owasp?.includes(cat?.split(':')?.[0]))) return false;
     if (searchQuery && !finding?.title?.toLowerCase()?.includes(searchQuery?.toLowerCase()) && !finding?.file?.toLowerCase()?.includes(searchQuery?.toLowerCase())) return false;
+    
+    // Dismissal logic
+    if (!filters.showDismissed && finding.isDismissed) return false;
+    if (filters.showDismissed && !finding.isDismissed) return false;
+
     return true;
   }) || [];
 
@@ -410,19 +734,29 @@ resultCount={filteredFindings?.length}
             </div>
 
             {sortedFindings?.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="flex flex-col items-center py-12">
                 <div className="w-16 h-16 bg-muted/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Icon name="Search" size={32} color="var(--color-muted-foreground)" />
+                  <Icon 
+                    name={scanData.findings.every(f => f.isDismissed) && !filters.showDismissed ? "ShieldCheck" : "Search"} 
+                    size={32} 
+                    color={scanData.findings.every(f => f.isDismissed) && !filters.showDismissed ? "var(--color-success)" : "var(--color-muted-foreground)"} 
+                  />
                 </div>
                 <h3 className="text-lg font-heading font-semibold text-foreground mb-2">
-                  No findings match your filters
+                  {scanData.findings.every(f => f.isDismissed) && !filters.showDismissed 
+                    ? "All vulnerabilities addressed!" 
+                    : "No findings match your filters"}
                 </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Try adjusting your search criteria or filters
+                <p className="text-sm text-muted-foreground mt-4">
+                  {scanData.findings.every(f => f.isDismissed) && !filters.showDismissed
+                    ? "Great job! This scan has no active security findings."
+                    : "Try adjusting your search criteria or filters"}
                 </p>
-                <Button variant="outline" onClick={handleResetFilters}>
-                  Reset Filters
-                </Button>
+                {!scanData.findings.every(f => f.isDismissed) && (
+                  <Button variant="outline" onClick={handleResetFilters}>
+                    Reset Filters
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="space-y-3 md:space-y-4">
@@ -442,6 +776,8 @@ resultCount={filteredFindings?.length}
       {showAIExplanation && selectedFinding && (
         <AIExplanationOverlay
           vulnerability={selectedFinding}
+          onExport={handleExport}
+          onResolve={handleDismissFinding}
           onClose={() => {
             setShowAIExplanation(false);
             setSelectedFinding(null);

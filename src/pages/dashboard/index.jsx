@@ -176,7 +176,8 @@ const Dashboard = () => {
             low: 0, 
             total: 0 
           },
-          filesScanned: scan.result?.fileCount || 0
+          filesScanned: scan.result?.fileCount || 0,
+          status: scan.status
         }));
         setRecentScans(mappedScans);
       } catch (error) {
@@ -190,6 +191,17 @@ const Dashboard = () => {
       setActiveScan(JSON.parse(storedScan));
     }
   }, []);
+
+  const handleResolveScan = async (scanId) => {
+    try {
+      await axios.patch(`http://127.0.0.1:8000/api/scans/${scanId}/resolve/`);
+      setRecentScans(prev => prev.map(scan => 
+        scan.id === scanId ? { ...scan, status: 'resolved' } : scan
+      ));
+    } catch (error) {
+      console.error("Error resolving scan:", error);
+    }
+  };
 
   const timeRangeOptions = [
     { value: '24h', label: '24 Hours' },
@@ -274,7 +286,7 @@ const Dashboard = () => {
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:gap-6">
                   {recentScans?.slice(0, 3)?.map((scan) => (
-                    <RecentScanCard key={scan?.id} scan={scan} />
+                    <RecentScanCard key={scan?.id} scan={scan} onResolve={handleResolveScan} />
                   ))}
                 </div>
               </div>
