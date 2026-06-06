@@ -10,6 +10,8 @@ import FileTreeExplorer from './pages/file-tree-explorer';
 import ScanProgress from './pages/scan-progress';
 import NewScanSetup from './pages/new-scan-setup';
 import Profile from './pages/profile';
+import Login from './pages/login';
+import Signup from './pages/signup';
 
 const Routes = () => {
   return (
@@ -17,7 +19,11 @@ const Routes = () => {
       <ErrorBoundary>
       <ScrollToTop />
       <RouterRoutes>
-        {/* Define your route here */}
+        {/* Authentication Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        
+        {/* Application Routes */}
         <Route path="/" element={<Dashboard />} />
         <Route path="/ai-explanation-modal" element={<AIExplanationModal />} />
         <Route path="/scan-results" element={<ScanResults />} />
